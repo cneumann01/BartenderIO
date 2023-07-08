@@ -8,8 +8,26 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String)
-    display_name = db.Column(db.String)
     password_hash = db.Column(db.String)
+
+    @classmethod
+    def signup(cls, username, password):
+        """Sign up a user"""
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        user = User(username=username, password_hash=password_hash)
+        db.session.add(user)
+        db.session.commit()
+        return user
+    
+    @classmethod
+    def authenticate(cls, username, password):
+        """Authenticate a user"""
+        user = User.query.filter_by(username=username).first()
+        if user and bcrypt.check_password_hash(user.password_hash, password):
+            return user
+        else:
+            return False
+        
 
 class Follows(db.Model):
     __tablename__ = 'follows'
@@ -27,8 +45,8 @@ class Drink(db.Model):
 class FavoriteDrink(db.Model):
     __tablename__ = 'favorite_drinks'
     id = db.Column(db.Integer, primary_key=True)
+    api_drink_id = db.Column(db.Integer)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    drink_id = db.Column(db.Integer, db.ForeignKey('drinks.id'))
 
 class Collection(db.Model):
     __tablename__ = 'collections'
@@ -49,6 +67,6 @@ class FavoriteCollection(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'))
 
-    def connect_db(app):
-        db.app = app
-        db.init_app(app)
+def connect_db(app):
+    db.app = app
+    db.init_app(app)

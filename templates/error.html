@@ -1,0 +1,14 @@
+{% extends 'base.html' %} {% block title %}404 Not Found{% endblock %} {% block
+content %}
+<div class="container centered">
+	<div class="row justify-content-center">
+		<div class="col-md-6 text-center">
+			<h1 class="display-1 mb-5 text-danger">{{error}}</h1>
+			<p class="lead fs-4 mb-5">
+				{{error_text}}
+			</p>
+			<a href="/drinks" class="btn btn-primary btn-lg m-3">All Drinks</a>
+		</div>
+	</div>
+</div>
+{% endblock %}

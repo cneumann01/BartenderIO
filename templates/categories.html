@@ -1,0 +1,11 @@
+{% extends 'base.html' %} {% block title %}Categories{% endblock %} {% block content
+%}
+
+<h1>Drink Categories</h1>
+
+<div class="container centered">
+	{% for category in categories %}
+	<a href="/drinks/category/{{category['strCategory']}}">{{category['strCategory']}}</a>
+	{% endfor %}
+</div>
+{% endblock %}

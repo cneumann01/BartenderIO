@@ -1,0 +1,93 @@
+{% extends 'base.html' %} {% block title %}Drinks{% endblock %} {% block
+content%}
+
+<div class="container">
+	<div class="row">
+		{% for drink in drinks %}
+		<div class="col-md-4">
+			<div class="card mb-3">
+				<img
+					src="{{ drink['strDrinkThumb'] }}"
+					class="card-img-top"
+					alt="{{ drink['strDrink'] }}"
+				/>
+				<div class="card-body">
+					<div class="d-flex align-items-center">
+						<form
+							action="/drinks/{{ drink['idDrink'] }}/favorite"
+							method="post"
+							class="favorite-form"
+						>
+							{% if
+							FavoriteDrink.query.filter_by(api_drink_id=drink['idDrink'],
+							user_id=session.get('USER_ID')).first() %}
+							<button
+								type="submit"
+								class="btn btn-warning btn-lg me-2 favorite-btn"
+								id="favorite-btn-{{ drink['idDrink'] }}"
+							>
+								<i class="far fa-star"></i>
+							</button>
+							{% else %}
+							<button
+								type="submit"
+								class="btn btn-outline-secondary btn-lg favorite-btn"
+								id="favorite-btn-{{ drink['idDrink'] }}"
+							>
+								<i class="fas fa-star"></i>
+							</button>
+							{% endif %}
+						</form>
+						<h5 class="card-title mb-0">{{ drink['strDrink'] }}</h5>
+					</div>
+					<a
+						href="/drinks/{{ drink['idDrink'] }}"
+						class="btn btn-primary"
+					>
+						View Details
+					</a>
+				</div>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+	$(document).ready(function () {
+		$(".favorite-form").submit(function (event) {
+			{% if not session.get('USER_ID') %}
+				return;
+			{% endif %}
+			event.preventDefault(); // Prevent default form submission
+			const form = $(this);
+			const button = form.find("button");
+			const drinkId = form.attr("action").split("/")[2]; // Extract drink ID from form action URL
+
+			// Perform the AJAX request
+			$.ajax({
+				url: form.attr("action"),
+				method: "POST",
+				success: function (response) {
+					// Update the button class/colors based on the response
+					if (!response.favorite_status) {
+						button
+							.removeClass("btn-outline-secondary")
+							.addClass("btn-warning");
+					} else {
+						button
+							.removeClass("btn-warning")
+							.addClass("btn-outline-secondary");
+					}
+					button.blur();
+				},
+				error: function (xhr, status, error) {
+					console.log(error); // Handle the error case
+				},
+			});
+		});
+	});
+</script>
+
+{% endblock %}
