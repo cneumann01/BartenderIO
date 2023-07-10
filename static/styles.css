@@ -23,11 +23,11 @@ nav {
 
 .fixed-alert-container {
 	position: fixed;
-	top: 56px; /* Adjust this value to match the height of your navbar */
+	top: 56px;
 	left: 0;
 	width: 100%;
 	padding: 10px;
-	z-index: 9999;
+	z-index: 1040;
 }
 
 .img-border {
@@ -67,4 +67,12 @@ nav {
 
 .favorite-btn {
 	margin: 10px 10px 10px 0;
+}
+
+
+.modal-dialog.modal-dialog-centered {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - (1.75rem * 2)); /* Adjust the padding as needed */
+	z-index: 1050;
 }

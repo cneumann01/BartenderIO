@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, flash, redirect, session, jsonify
 from models import db, connect_db, User, Follows, Drink, FavoriteDrink, Collection, CollectionTable, FavoriteCollection
-from forms import SignupForm, LoginForm
+from forms import SignupForm, LoginForm, CollectionForm
 from api_client import *
+from api_lists import *
 
 app = Flask(__name__)
 
@@ -13,7 +14,6 @@ app.config['SECRET_KEY'] = 'secret_key'
 connect_db(app)
 with app.app_context():
     db.create_all()
-
 
 # HOME/LOGIN/LOGOUT/SIGNUP
 @app.route('/')
@@ -82,7 +82,7 @@ def random_drink():
 def show_drinks():
     """Show all drinks"""
     drinks = get_drinks_by_alcoholic()
-    return render_template('drinks.html', drinks=drinks, FavoriteDrink=FavoriteDrink)
+    return render_template('drinks.html', drinks=drinks)
 
 @app.route('/drinks/search' , methods=['GET','POST'])
 def search_drinks():
@@ -90,7 +90,7 @@ def search_drinks():
     search_query = request.form.get('search_query')
     drinks = get_drinks_by_name(search_query)
     if drinks:
-        return render_template('drinks.html', drinks=drinks, FavoriteDrink=FavoriteDrink)
+        return render_template('drinks.html', drinks=drinks)
     else:
         flash('No drinks containing that name were found')
         return redirect('/drinks')
@@ -99,7 +99,7 @@ def search_drinks():
 def show_drink(drink_id):
     """Show a drink"""
     drink = get_drink_by_id(drink_id)
-    return render_template('drink.html', drink=drink, FavoriteDrink=FavoriteDrink)
+    return render_template('drink.html', drink=drink)
 
 @app.route('/drinks/<int:drink_id>/favorite', methods=['POST'])
 def favorite_drink(drink_id):
@@ -120,7 +120,7 @@ def favorite_drink(drink_id):
             db.session.commit()
             return jsonify({'favorite_status': False})
         
-# FAVORITES/CATEGORIES/COLLECTIONS
+# FAVORITES/CATEGORIES
 @app.route('/drinks/favorites')
 def show_favorites():
     """Show all favorites"""
@@ -138,17 +138,16 @@ def show_favorites():
         if not drinks:
             flash('You have no favorites yet. Press the star next to a drink to favorite it!')
             return redirect('/drinks')
-        return render_template('drinks.html', drinks=drinks, FavoriteDrink=FavoriteDrink)
+        return render_template('drinks.html', heading='Favorites', drinks=drinks)
 
 @app.route('/drinks/alcoholic')
 def show_alcoholic():
     drinks = get_drinks_by_alcoholic()
-    return render_template('drinks.html', drinks=drinks, FavoriteDrink=FavoriteDrink)
-
+    return render_template('drinks.html', drinks=drinks)
 @app.route('/drinks/non-alcoholic')
 def show_non_alcoholic():
     drinks = get_drinks_by_non_alcoholic()
-    return render_template('drinks.html', drinks=drinks, FavoriteDrink=FavoriteDrink)
+    return render_template('drinks.html', drinks=drinks)
 
 @app.route('/drinks/category')
 def show_categories():
@@ -158,12 +157,136 @@ def show_categories():
 @app.route('/drinks/category/<string:category>')
 def show_category(category):
     drinks = get_drinks_by_category(category)
-    return render_template('drinks.html', drinks=drinks, FavoriteDrink=FavoriteDrink)
+    return render_template('drinks.html', drinks=drinks)
 
 
+# COLLECTIONS
+@app.route('/collections')
+def show_collections():
+    """Show all collections"""
+    if not session.get('USER_ID'):
+        flash('You must be logged in to view collections')
+        session['previous_page'] = '/collections'
+        return redirect('/login')
+    else:
+        collections = Collection.query.filter_by(user_id=session['USER_ID']).all()
+        if collections:
+            return render_template('collections.html')
+        else:
+            flash('You have no collections yet. Create your first one below!')
+            return redirect('/collections/new')
+    
+@app.route('/collections/new', methods=['GET','POST'])
+def create_collection():
+    """Create a collection"""
+    if not session.get('USER_ID'):
+        flash('You must be logged in to create a collection')
+        session['previous_page'] = '/collections/new'
+        return redirect('/login')
+    form = CollectionForm()
+    if form.validate_on_submit():
+        name = request.form.get('name')
+        description = request.form.get('description')
+        collection = Collection(name=name, description=description, user_id=session['USER_ID'])
+        db.session.add(collection)
+        db.session.commit()
+        return redirect('/collections')
+    else:
+        return render_template('create_collection.html', form=form)
+        
+@app.route('/collections/<int:collection_id>')
+def show_collection(collection_id):
+    collection = Collection.query.get_or_404(collection_id)
+    drinks = collection.drinks
+    return render_template('drinks.html', drinks=drinks)
+
+@app.route('/collections/<int:collection_id>/edit', methods=['GET','POST'])
+def edit_collection(collection_id):
+    """Edit a collection"""
+    if not session.get('USER_ID'):
+        flash('You must be logged in to edit a collection')
+        session['previous_page'] = f'/collections/{collection_id}/edit'
+        return redirect('/login')
+    else:
+        collection = Collection.query.get_or_404(collection_id)
+        if collection.user_id != session['USER_ID']:
+            flash('You can only edit your own collections')
+            return redirect('/collections')
+        if request.method == 'GET':
+            return render_template('edit_collection.html')
+        else:
+            collection_name = request.form.get('collection_name')
+            collection.name = collection_name
+            db.session.commit()
+            return redirect('/collections')
+        
+@app.route('/collections/<int:collection_id>/delete', methods=['POST'])
+def delete_collection(collection_id):
+    """Delete a collection"""
+    if not session.get('USER_ID'):
+        flash('You must be logged in to delete a collection')
+        session['previous_page'] = f'/collections/{collection_id}/delete'
+        return redirect('/login')
+    else:
+        collection = Collection.query.get_or_404(collection_id)
+        if collection.user_id != session['USER_ID']:
+            flash('You can only delete your own collections')
+            return redirect('/collections')
+        db.session.delete(collection)
+        db.session.commit()
+        return redirect('/collections')
+    
+@app.route('/collections/<int:collection_id>/add-drink', methods=['GET','POST'])
+def add_drink_to_collection(collection_id):
+    """Add a drink to a collection"""
+    if not session.get('USER_ID'):
+        flash('You must be logged in to add a drink to a collection')
+        session['previous_page'] = f'/collections/{collection_id}/add-drink'
+        return redirect('/login')
+    else:
+        collection = Collection.query.get_or_404(collection_id)
+        if collection.user_id != session['USER_ID']:
+            flash('You can only add drinks to your own collections')
+            return redirect('/collections')
+        if request.method == 'GET':
+            drinks = get_drinks_by_alcoholic()
+            return render_template('add_drink_to_collection.html', drinks=drinks)
+        else:
+            drink_id = request.form.get('drink_id')
+            drink = get_drink_by_id(drink_id)
+            collection.drinks.append(drink)
+            db.session.commit()
+            return redirect(f'/collections/{collection_id}')
+        
+@app.route('/collections/<int:collection_id>/remove-drink/<int:drink_id>', methods=['POST'])
+def remove_drink_from_collection(collection_id, drink_id):
+    """Remove a drink from a collection"""
+    if not session.get('USER_ID'):
+        flash('You must be logged in to remove a drink from a collection')
+        session['previous_page'] = f'/collections/{collection_id}/remove-drink/{drink_id}'
+        return redirect('/login')
+    else:
+        collection = Collection.query.get_or_404(collection_id)
+        if collection.user_id != session['USER_ID']:
+            flash('You can only remove drinks from your own collections')
+            return redirect('/collections')
+        drink = get_drink_by_id(drink_id)
+        collection.drinks.remove(drink)
+        db.session.commit()
+        return redirect(f'/collections/{collection_id}')
 
 
+# APP CONTEXT PROCESSORS
+@app.context_processor
+def collections_processor():
+    """Make collections available to all templates"""
+    collections = Collection.query.all()
+    return dict(collections=collections)
 
+@app.context_processor
+def favorites_processor():
+    """Make FavoriteDrink available to all templates for querying"""
+    return dict(FavoriteDrink=FavoriteDrink)
 
 # ERROR MESSAGES
 @app.errorhandler(404)

@@ -2,6 +2,7 @@
 content%}
 
 <div class="container">
+	<h1>{{heading}}</h1>
 	<div class="row">
 		{% for drink in drinks %}
 		<div class="col-md-4">
@@ -40,54 +41,27 @@ content%}
 						</form>
 						<h5 class="card-title mb-0">{{ drink['strDrink'] }}</h5>
 					</div>
-					<a
-						href="/drinks/{{ drink['idDrink'] }}"
-						class="btn btn-primary"
-					>
-						View Details
-					</a>
+					<div class="d-flex align-items-center">
+						<a
+							href="/drinks/{{ drink['idDrink'] }}"
+							class="btn btn-primary"
+						>
+							View Details
+						</a>
+						<button
+							type="button"
+							class="btn btn-secondary mx-2"
+							data-bs-toggle="modal"
+							data-bs-target="#collectionsModal"
+						>
+							View Collections
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
 		{% endfor %}
 	</div>
 </div>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-	$(document).ready(function () {
-		$(".favorite-form").submit(function (event) {
-			{% if not session.get('USER_ID') %}
-				return;
-			{% endif %}
-			event.preventDefault(); // Prevent default form submission
-			const form = $(this);
-			const button = form.find("button");
-			const drinkId = form.attr("action").split("/")[2]; // Extract drink ID from form action URL
-
-			// Perform the AJAX request
-			$.ajax({
-				url: form.attr("action"),
-				method: "POST",
-				success: function (response) {
-					// Update the button class/colors based on the response
-					if (!response.favorite_status) {
-						button
-							.removeClass("btn-outline-secondary")
-							.addClass("btn-warning");
-					} else {
-						button
-							.removeClass("btn-warning")
-							.addClass("btn-outline-secondary");
-					}
-					button.blur();
-				},
-				error: function (xhr, status, error) {
-					console.log(error); // Handle the error case
-				},
-			});
-		});
-	});
-</script>
-
-{% endblock %}
+{% include '_collections_modal.html' %} {% include '_favorite_button_script.html' %} {%
+endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %} {% block title %}Create_Collection{% endblock %} {% block content
+    %}
+    
+    <div class="container centered">
+        <h1 class="mb-4">New Collection</h1>
+        <div class="col-md-8 offset-md-2">
+            <form method="POST" action="/collections/new">
+                {{ form.csrf_token }} {% for field in form %} {% if field.name !=
+                'csrf_token' %}
+                <div class="form-group">
+                    {{ field.label(class="form-label") }} {{
+                    field(class="form-control") }} {% for error in field.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %} {% endfor %}
+    
+                <button type="submit" class="btn btn-primary mt-4 btn-lg">
+                    Create
+                </button>
+    
+                <a href="/drinks" class="btn btn-secondary mt-4 btn-lg">Home</a>
+            </form>
+        </div>
+    </div>
+    {% endblock %}
