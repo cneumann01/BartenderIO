@@ -48,16 +48,18 @@ class Collection(db.Model):
     description = db.Column(db.String)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
+    collections_table_entries = db.relationship('CollectionTable', backref='collections', cascade='all, delete-orphan')
+
 class CollectionTable(db.Model):
     __tablename__ = 'collections_table'
     id = db.Column(db.Integer, primary_key=True)
-    collection_id = db.Column(db.Integer)
-    drink_id = db.Column(db.Integer)
+    collection_id = db.Column(db.Integer, nullable=False)
+    drink_id = db.Column(db.Integer, nullable=False)
 
     collection = db.relationship('Collection', backref='collections_table')
 
     __table_args__ = (
-        db.ForeignKeyConstraint([collection_id], [Collection.id]),
+        db.ForeignKeyConstraint([collection_id], [Collection.id], ondelete='CASCADE'),
         db.ForeignKeyConstraint([drink_id], [Drink.id]),
     )
 

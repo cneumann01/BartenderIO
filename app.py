@@ -204,7 +204,11 @@ def show_collection(collection_id):
             drink = get_drink_by_id(int(drink_id[0]))
             drinks.append(drink)
         
-    return render_template('drinks.html', drinks=drinks, heading=Collection.query.get_or_404(collection_id).name)
+    if drinks:
+        return render_template('drinks.html', drinks=drinks, heading=Collection.query.get_or_404(collection_id).name)
+    else:
+        flash("This collection's empty! Add some drinks with the 'View Collection' button and try again")
+        return redirect('/')
 
 @app.route('/collections/<int:collection_id>/edit', methods=['GET','POST'])
 def edit_collection(collection_id):
@@ -218,13 +222,13 @@ def edit_collection(collection_id):
         if collection.user_id != session['USER_ID']:
             flash('You can only edit your own collections')
             return redirect('/collections')
-        if request.method == 'GET':
-            return render_template('edit_collection.html')
-        else:
-            collection_name = request.form.get('collection_name')
-            collection.name = collection_name
+        form = CollectionForm()
+        if form.validate_on_submit():
+            form.populate_obj(collection)
             db.session.commit()
             return redirect('/collections')
+        else:
+            return render_template('edit_collection.html', form=form, collection=collection)
         
 @app.route('/collections/<int:collection_id>/delete', methods=['POST'])
 def delete_collection(collection_id):
@@ -240,6 +244,7 @@ def delete_collection(collection_id):
             return redirect('/collections')
         db.session.delete(collection)
         db.session.commit()
+        flash(f'{collection.name} deleted')
         return redirect('/collections')
     
 @app.route('/collections/update-drinks', methods=['POST'])
@@ -275,7 +280,7 @@ def update_collection_drinks():
                 db.session.commit()
             except IntegrityError as e:
                 db.session.rollback()
-                flash('Error creating the drink. Please try again later.')
+                flash('Error creating the drink. Please try again later')
                 return redirect('/collections')
 
         # Now that we have the drink instance, we can proceed to add it to the collections
@@ -301,7 +306,7 @@ def update_collection_drinks():
             except Exception as e:
                 print(f'Error updating collections: {e}')
                 db.session.rollback()
-                flash('Error updating collections. Please try again later.')
+                flash('Error updating collections. Please try again later')
                 return redirect('/')
 
         return 'success'

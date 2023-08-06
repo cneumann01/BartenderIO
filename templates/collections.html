@@ -14,11 +14,31 @@ content %}
 				<div class="card-body">
 					<h4 class="card-title">{{ collection.name }}</h4>
 					<p class="card-text">{{ collection.description }}</p>
-					<a
-						href="/collections/{{ collection.id }}"
-						class="btn btn-primary"
-						>View Collection</a
-					>
+					<div class="d-flex align-items-center">
+						<a
+							href="/collections/{{ collection.id }}"
+							class="btn btn-primary"
+							>View Drinks</a
+						>
+						<a
+							href="/collections/{{ collection.id }}/edit"
+							class="btn btn-secondary mx-2"
+							>Edit Collection</a
+						>
+						<form
+							id="delete-form-{{ collection.id }}"
+							action="/collections/{{ collection.id }}/delete"
+							method="post"
+						>
+							<button
+								class="btn btn-danger"
+								type="button"
+								onclick="confirmDelete({{collection.id}})"
+							>
+								Delete
+							</button>
+						</form>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -26,4 +46,16 @@ content %}
 	</div>
 	{% endif %}
 </div>
+
+<script>
+	function confirmDelete(collectionId) {
+		if (
+			window.confirm("Are you sure you want to delete this collection?")
+		) {
+			const form = document.getElementById("delete-form-" + collectionId);
+			form.submit();
+		}
+	}
+</script>
+
 {% endblock %}
