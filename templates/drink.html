@@ -19,7 +19,7 @@
 						class="favorite-form"
 					>
 						{% if
-						FavoriteDrink.query.filter_by(api_drink_id=drink['idDrink'],
+						FavoriteDrink.query.filter_by(drink_id=drink['idDrink'],
 						user_id=session.get('USER_ID')).first() %}
 						<button
 							type="submit"
@@ -40,6 +40,20 @@
 					</form>
 					<h2 class="mb-0">{{ drink['strDrink'] }}</h2>
 				</div>
+				<!-- View Collections Button -->
+				<button
+					type="button"
+					class="btn btn-primary my-1"
+					{% if not session.get('USER_ID') %}
+						onclick="showLoginError()"
+					{% else %}
+						data-bs-toggle="modal"
+						data-bs-target="#collectionsModal"
+						onclick="setDrinkId( `{{ drink['idDrink'] }}` )"
+					{% endif %}
+				>
+					View Collections
+				</button>
 				<p><strong>Category:</strong> {{drink['strCategory']}}</p>
 				<p><strong>Glass:</strong> {{drink["strGlass"]}}</p>
 				<p><strong>Alcohol:</strong> {{drink["strAlcoholic"]}}</p>
@@ -60,40 +74,5 @@
 	</div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-	$(document).ready(function () {
-		$(".favorite-form").submit(function (event) {
-			{% if not session.get('USER_ID') %}
-				return;
-			{% endif %}
-			event.preventDefault(); // Prevent default form submission
-			const form = $(this);
-			const button = form.find("button");
-			const drinkId = form.attr("action").split("/")[2]; // Extract drink ID from form action URL
-
-			// Perform the AJAX request
-			$.ajax({
-				url: form.attr("action"),
-				method: "POST",
-				success: function (response) {
-					// Update the button class/colors based on the response
-					if (!response.favorite_status) {
-						button
-							.removeClass("btn-outline-secondary")
-							.addClass("btn-warning");
-					} else {
-						button
-							.removeClass("btn-warning")
-							.addClass("btn-outline-secondary");
-					}
-					button.blur();
-				},
-				error: function (xhr, status, error) {
-					console.log(error); // Handle the error case
-				},
-			});
-		});
-	});
-</script>
-{% endblock %}
+{% include '_collections_modal.html' %} {% include '_favorite_button_script.html' %} {%
+endblock %}

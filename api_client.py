@@ -1,5 +1,4 @@
 import requests
-
 BASE_URL = 'https://www.thecocktaildb.com/api/json/v1/1'
 
 def get_drink_by_id(drink_id):
@@ -11,7 +10,6 @@ def get_random_drink():
     """Get a random drink"""
     r = requests.get(f'{BASE_URL}/random.php')
     return r.json()['drinks'][0]
-
 
 def get_drinks_by_ingredient(ingredient):
     """Get drinks by ingredient"""
@@ -63,18 +61,5 @@ def get_drinks_by_ingredient(ingredient):
     r = requests.get(f'{BASE_URL}/filter.php?i={ingredient}')
     return r.json()['drinks']
 
-def list_categories():
-    """List categories"""
-    r = requests.get(f'{BASE_URL}/list.php?c=list')
-    return r.json()['drinks']
 
-def list_glasses():
-    """List glasses"""
-    r = requests.get(f'{BASE_URL}/list.php?g=list')
-    return r.json()['drinks']
-
-def list_ingredients():
-    """List ingredients"""
-    r = requests.get(f'{BASE_URL}/list.php?i=list')
-    return r.json()['drinks']
 

@@ -1,0 +1,36 @@
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+	$(document).ready(function () {
+		$(".favorite-form").submit(function (event) {
+			{% if not session.get('USER_ID') %}
+				return;
+			{% endif %}
+			event.preventDefault(); // Prevent default form submission
+			const form = $(this);
+			const button = form.find("button");
+			const drinkId = form.attr("action").split("/")[2]; // Extract drink ID from form action URL
+
+			// Perform the AJAX request
+			$.ajax({
+				url: form.attr("action"),
+				method: "POST",
+				success: function (response) {
+					// Update the button class/colors based on the response
+					if (!response.favorite_status) {
+						button
+							.removeClass("btn-outline-secondary")
+							.addClass("btn-warning");
+					} else {
+						button
+							.removeClass("btn-warning")
+							.addClass("btn-outline-secondary");
+					}
+					button.blur();
+				},
+				error: function (xhr, status, error) {
+					console.log(error); // Handle error cases
+				},
+			});
+		});
+	});
+</script>

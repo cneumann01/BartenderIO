@@ -1,0 +1,61 @@
+{% extends 'base.html' %} {% block title %}Collections{% endblock %} {% block
+content %}
+<div class="container">
+	<h1>Collections</h1>
+	{% if not session.get('USER_ID') %}
+	<div class="alert alert-danger" role="alert">
+		You must be logged in to view collections.
+	</div>
+	{% else %}
+	<div class="row">
+		{% for collection in collections %}
+		<div class="col-md-4">
+			<div class="card mb-3">
+				<div class="card-body">
+					<h4 class="card-title">{{ collection.name }}</h4>
+					<p class="card-text">{{ collection.description }}</p>
+					<div class="d-flex align-items-center">
+						<a
+							href="/collections/{{ collection.id }}"
+							class="btn btn-primary"
+							>View Drinks</a
+						>
+						<a
+							href="/collections/{{ collection.id }}/edit"
+							class="btn btn-secondary mx-2"
+							>Edit Collection</a
+						>
+						<form
+							id="delete-form-{{ collection.id }}"
+							action="/collections/{{ collection.id }}/delete"
+							method="post"
+						>
+							<button
+								class="btn btn-danger"
+								type="button"
+								onclick="confirmDelete({{collection.id}})"
+							>
+								Delete
+							</button>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+	{% endif %}
+</div>
+
+<script>
+	function confirmDelete(collectionId) {
+		if (
+			window.confirm("Are you sure you want to delete this collection?")
+		) {
+			const form = document.getElementById("delete-form-" + collectionId);
+			form.submit();
+		}
+	}
+</script>
+
+{% endblock %}
