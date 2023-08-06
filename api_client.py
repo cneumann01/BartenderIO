@@ -11,7 +11,6 @@ def get_random_drink():
     r = requests.get(f'{BASE_URL}/random.php')
     return r.json()['drinks'][0]
 
-
 def get_drinks_by_ingredient(ingredient):
     """Get drinks by ingredient"""
     r = requests.get(f'{BASE_URL}/filter.php?i={ingredient}')

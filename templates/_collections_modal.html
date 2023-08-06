@@ -1,4 +1,5 @@
 <!-- Collections Modal -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <div
 	class="modal fade"
 	id="collectionsModal"
@@ -24,22 +25,105 @@
 				{% if not collections %}
 				<p>You have no collections. Create one below!</p>
 				{% endif %} {% for collection in collections %}
-				<h6>{{ collection.name }}</h6>
-				<p>{{ collection.description }}</p>
+				<div class="form-check">
+					<input
+						class="form-check-input"
+						type="checkbox"
+						name="collections"
+						value="{{ collection.id }}"
+					/>
+					<label class="form-check-label"
+						>{{ collection.name }}</label
+					>
+				</div>
 				{% endfor %}
 			</div>
 			<div class="modal-footer">
-				<a href="/collections/new" class="btn btn-primary">
-					Create Collection</a
-				>
 				<button
 					type="button"
-					class="btn btn-secondary"
-					data-bs-dismiss="modal"
+					class="btn btn-primary"
+					id="updateDrinkBtn"
 				>
-					Close
+					Update Collections
 				</button>
+				<a href="/collections/new" class="btn btn-secondary">
+					New Collection</a
+				>
 			</div>
 		</div>
 	</div>
 </div>
+
+<script>
+	$(document).ready(function () {
+
+		// Function to run when the modal is shown
+		function onModalShown() {
+
+			// Get the drink ID from the data attribute
+			const drinkId = $("#collectionsModal").data("drinkId");
+			console.log("Drink ID:", drinkId);
+
+			// Perform the AJAX request to get the existing collections
+			$.ajax({
+				url: `/collections/selected`,
+				method: "POST",
+				contentType: "application/json",
+				data: JSON.stringify({ drinkId: drinkId }),
+				success: function (response) {
+					const selectedCollections = response.collections;
+					console.log(response);
+					// Loop through checkboxes and pre-check the ones that correspond to the existing collection-drink relationships
+					$("input[name='collections']").each(function () {
+						const collectionId = $(this).val();
+						if (selectedCollections.includes(collectionId)) {
+							$(this).prop("checked", true);
+						}
+					});
+				},
+				error: function (error) {
+					console.log("Error fetching existing collections:", error);
+				},
+			});
+		}
+
+		// Attach the onModalShown function to the shown.bs.modal event
+		$("#collectionsModal").on("shown.bs.modal", onModalShown);
+
+		// Update collections_table upon closing the modal with the update drink button.
+		$("#updateDrinkBtn").click(function (event) {
+			event.preventDefault();
+
+			const selectedCollections = $("input[name='collections']:checked")
+				.map(function () {
+					return $(this).val();
+				})
+				.get();
+
+			// Get the drink ID from the data attribute
+			const drinkId = $("#collectionsModal").data("drinkId");
+
+
+			// Perform the AJAX request to add/remove the drink to the collection(s)
+			$.ajax({
+				url: "/collections/update-drinks",
+				method: "POST",
+				contentType: "application/json",
+				data: JSON.stringify({
+					drinkId: drinkId,
+					collections: selectedCollections,
+				}),
+				success: function (response) {
+					// Handle the success response
+					console.log("Collection(s) updated!");
+					$("#collectionsModal").modal("hide");
+					location.reload();
+				},
+				error: function (error) {
+					// Handle the error case
+					console.log("Error adding drink to collections:", error);
+				},
+			});
+		});
+	});
+</script>

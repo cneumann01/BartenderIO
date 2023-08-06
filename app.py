@@ -3,6 +3,7 @@ from models import db, connect_db, User, Follows, Drink, FavoriteDrink, Collecti
 from forms import SignupForm, LoginForm, CollectionForm
 from api_client import *
 from api_lists import *
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 
@@ -109,13 +110,13 @@ def favorite_drink(drink_id):
         session['previous_page'] = f'/drinks/{drink_id}'
         return redirect('/login')
     else:
-        favorite = FavoriteDrink.query.filter_by(api_drink_id=drink_id, user_id=session['USER_ID']).first()
+        favorite = FavoriteDrink.query.filter_by(drink_id=drink_id, user_id=session['USER_ID']).first()
         if favorite:
             db.session.delete(favorite)
             db.session.commit()
             return jsonify({'favorite_status': True})
         else:
-            favorite_drink = FavoriteDrink(api_drink_id=drink_id, user_id=session['USER_ID'])
+            favorite_drink = FavoriteDrink(drink_id=drink_id, user_id=session['USER_ID'])
             db.session.add(favorite_drink)
             db.session.commit()
             return jsonify({'favorite_status': False})
@@ -132,7 +133,7 @@ def show_favorites():
         drinks = []
         favorites = FavoriteDrink.query.filter_by(user_id=session['USER_ID']).all()
         for favorite in favorites:
-            drink = get_drink_by_id(favorite.api_drink_id)
+            drink = get_drink_by_id(favorite.drink_id)
             drinks.append(drink)
 
         if not drinks:
@@ -196,8 +197,7 @@ def create_collection():
         
 @app.route('/collections/<int:collection_id>')
 def show_collection(collection_id):
-    collection = Collection.query.get_or_404(collection_id)
-    drinks = collection.drinks
+    drinks = Drink.query.join(CollectionTable).filter(CollectionTable.collection_id == collection_id).all()
     return render_template('drinks.html', drinks=drinks)
 
 @app.route('/collections/<int:collection_id>/edit', methods=['GET','POST'])
@@ -236,51 +236,94 @@ def delete_collection(collection_id):
         db.session.commit()
         return redirect('/collections')
     
-@app.route('/collections/<int:collection_id>/add-drink', methods=['GET','POST'])
-def add_drink_to_collection(collection_id):
-    """Add a drink to a collection"""
+@app.route('/collections/update-drinks', methods=['POST'])
+def update_collection_drinks():
+    """Update the drinks in collections"""
     if not session.get('USER_ID'):
-        flash('You must be logged in to add a drink to a collection')
-        session['previous_page'] = f'/collections/{collection_id}/add-drink'
+        flash('You must be logged in to add or remove a drink from a collection')
         return redirect('/login')
     else:
-        collection = Collection.query.get_or_404(collection_id)
-        if collection.user_id != session['USER_ID']:
-            flash('You can only add drinks to your own collections')
-            return redirect('/collections')
-        if request.method == 'GET':
-            drinks = get_drinks_by_alcoholic()
-            return render_template('add_drink_to_collection.html', drinks=drinks)
-        else:
-            drink_id = request.form.get('drink_id')
-            drink = get_drink_by_id(drink_id)
-            collection.drinks.append(drink)
-            db.session.commit()
-            return redirect(f'/collections/{collection_id}')
-        
-@app.route('/collections/<int:collection_id>/remove-drink/<int:drink_id>', methods=['POST'])
-def remove_drink_from_collection(collection_id, drink_id):
-    """Remove a drink from a collection"""
+        data = request.json
+        drink_id = data.get('drinkId')
+        selected_collections = data.get('collections')
+
+        # Get the drink instance from the database
+        drink = Drink.query.filter_by(id=drink_id).first()
+        print(f'DRINK INSTANCE FOUND: {drink}')
+
+        # If the drink doesn't exist in the database, fetch its details from the API
+        if not drink:
+            print('DRINK DOES NOT EXIST IN DATABASE')
+            print('FETCHING DRINK DETAILS FROM API')
+            drink_details = get_drink_by_id(drink_id)
+
+            # Create a new Drink instance using the fetched details
+            drink = Drink(
+                id = drink_details['idDrink'],
+                name=drink_details['strDrink'],
+                thumb_url=drink_details['strDrinkThumb']
+            )
+
+            try:
+                db.session.add(drink)
+                db.session.commit()
+            except IntegrityError as e:
+                db.session.rollback()
+                flash('Error creating the drink. Please try again later.')
+                return redirect('/collections')
+
+        # Now that we have the drink instance, we can proceed to add it to the collections
+        for collection_id in selected_collections:
+            collection = Collection.query.get_or_404(collection_id)
+
+            if collection.user_id != session['USER_ID']:
+                flash('You can only update your own collections')
+                return redirect('/collections')
+
+            try:
+                collection_table_entry = CollectionTable.query.filter_by(collection_id=collection_id, drink_id=drink.id).first()
+
+                if collection_table_entry:
+                    db.session.delete(collection_table_entry)
+                    flash(f'{drink.name} removed from {collection.name}')
+                else:
+                    new_collection_table_entry = CollectionTable(collection_id=collection_id, drink_id=drink.id)
+                    db.session.add(new_collection_table_entry)
+                    flash(f'{drink.name} added to {collection.name}')
+                db.session.commit()
+
+            except Exception as e:
+                print(f'Error updating collections: {e}')
+                db.session.rollback()
+                flash('Error updating collections. Please try again later.')
+                return redirect('/')
+
+        return 'success'
+
+@app.route('/collections/selected', methods=['POST'])
+def get_selected_collections():
+    """Get the collections selected on the update collections modal"""
     if not session.get('USER_ID'):
-        flash('You must be logged in to remove a drink from a collection')
-        session['previous_page'] = f'/collections/{collection_id}/remove-drink/{drink_id}'
+        flash('You must be logged in to add or remove a drink from a collection')
         return redirect('/login')
     else:
-        collection = Collection.query.get_or_404(collection_id)
-        if collection.user_id != session['USER_ID']:
-            flash('You can only remove drinks from your own collections')
-            return redirect('/collections')
-        drink = get_drink_by_id(drink_id)
-        collection.drinks.remove(drink)
-        db.session.commit()
-        return redirect(f'/collections/{collection_id}')
+        data = request.json
+        drink_id = data.get('drinkId')
+
+        selected_collection_entries = CollectionTable.query.filter_by(drink_id=drink_id).all()
+        selected_collections = [entry.collection_id for entry in selected_collection_entries]
+
+        return jsonify({'drinkId': drink_id, 'collections': selected_collections})
 
 
 # APP CONTEXT PROCESSORS
 @app.context_processor
 def collections_processor():
-    """Make collections available to all templates"""
-    collections = Collection.query.all()
+    """Make user's collections available to all templates"""
+    if not session.get('USER_ID'):
+        collections = []
+    else:
+        collections = Collection.query.filter(Collection.user_id == session.get('USER_ID')).all()
     return dict(collections=collections)
 
 @app.context_processor
@@ -289,25 +332,31 @@ def favorites_processor():
     return dict(FavoriteDrink=FavoriteDrink)
 
 # ERROR MESSAGES
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('error.html', error=404, error_text=e), 404
+@app.route('/login-error')
+def login_error():
+    """Show error message for login required"""
+    flash ('You must be logged in to view that page')
+    return redirect('/login')
 
 @app.errorhandler(500)
 def internal_server_error(e):
     return render_template('error.html', error=500, error_text=e), 500
 
-@app.errorhandler(403)
-def forbidden(e):
-    return render_template('error.html', error=403, error_text=e), 403
+@app.errorhandler(400)
+def bad_request(e):
+    return render_template('error.html', error=400, error_text=e), 400
 
 @app.errorhandler(401)
 def unauthorized(e):
     return render_template('error.html', error=401, error_text=e), 401
 
-@app.errorhandler(400)
-def bad_request(e):
-    return render_template('error.html', error=400, error_text=e), 400
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('error.html', error=403, error_text=e), 403
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('error.html', error=404, error_text=e), 404
 
 @app.errorhandler(405)
 def method_not_allowed(e):

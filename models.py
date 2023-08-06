@@ -38,15 +38,8 @@ class Follows(db.Model):
 class Drink(db.Model):
     __tablename__ = 'drinks'
     id = db.Column(db.Integer, primary_key=True)
-    api_drink_id = db.Column(db.Integer)
     name = db.Column(db.String)
     thumb_url = db.Column(db.String)
-
-class FavoriteDrink(db.Model):
-    __tablename__ = 'favorite_drinks'
-    id = db.Column(db.Integer, primary_key=True)
-    api_drink_id = db.Column(db.Integer)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 class Collection(db.Model):
     __tablename__ = 'collections'
@@ -58,8 +51,20 @@ class Collection(db.Model):
 class CollectionTable(db.Model):
     __tablename__ = 'collections_table'
     id = db.Column(db.Integer, primary_key=True)
-    collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'))
-    drink_id = db.Column(db.Integer, db.ForeignKey('drinks.id'))
+    collection_id = db.Column(db.Integer)
+    drink_id = db.Column(db.Integer)
+
+    collection = db.relationship('Collection', backref='collections_table')
+    __table_args__ = (
+        db.ForeignKeyConstraint([collection_id], [Collection.id]),
+        db.ForeignKeyConstraint([drink_id], [Drink.id]),
+    )
+
+class FavoriteDrink(db.Model):
+    __tablename__ = 'favorite_drinks'
+    id = db.Column(db.Integer, primary_key=True)
+    drink_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 class FavoriteCollection(db.Model):
     __tablename__ = 'favorite_collections'
