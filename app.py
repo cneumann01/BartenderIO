@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///BartenderIO'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = True
+app.config['SQLALCHEMY_ECHO'] = False
 app.config['SECRET_KEY'] = 'secret_key'
 
 connect_db(app)
@@ -197,8 +197,14 @@ def create_collection():
         
 @app.route('/collections/<int:collection_id>')
 def show_collection(collection_id):
-    drinks = Drink.query.join(CollectionTable).filter(CollectionTable.collection_id == collection_id).all()
-    return render_template('drinks.html', drinks=drinks)
+    drinks = []
+    drink_ids = CollectionTable.query.filter_by(collection_id=collection_id).with_entities(CollectionTable.drink_id).all()
+    
+    for drink_id in drink_ids:
+            drink = get_drink_by_id(int(drink_id[0]))
+            drinks.append(drink)
+        
+    return render_template('drinks.html', drinks=drinks, heading=Collection.query.get_or_404(collection_id).name)
 
 @app.route('/collections/<int:collection_id>/edit', methods=['GET','POST'])
 def edit_collection(collection_id):

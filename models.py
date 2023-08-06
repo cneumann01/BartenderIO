@@ -55,6 +55,7 @@ class CollectionTable(db.Model):
     drink_id = db.Column(db.Integer)
 
     collection = db.relationship('Collection', backref='collections_table')
+
     __table_args__ = (
         db.ForeignKeyConstraint([collection_id], [Collection.id]),
         db.ForeignKeyConstraint([drink_id], [Drink.id]),
