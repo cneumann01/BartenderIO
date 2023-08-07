@@ -1,28 +1,37 @@
-from flask import Flask, render_template, request, flash, redirect, session, jsonify
+import os
+from flask import Flask, render_template, request, flash, redirect, session, jsonify, Blueprint
 from models import db, connect_db, User, Follows, Drink, FavoriteDrink, Collection, CollectionTable, FavoriteCollection
 from forms import SignupForm, LoginForm, CollectionForm
 from api_client import *
 from api_lists import *
 from sqlalchemy.exc import IntegrityError
 
-app = Flask(__name__)
+def create_app():
+    """Create and configure an instance of the Flask application"""
+    app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///BartenderIO'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = False
-app.config['SECRET_KEY'] = 'secret_key'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ECHO'] = False
+    app.config['SECRET_KEY'] = 'secret_key'
 
-connect_db(app)
-with app.app_context():
-    db.create_all()
+    connect_db(app)
+    with app.app_context():
+        db.create_all()
+
+    app.register_blueprint(main)
+
+    return app
+
+main = Blueprint('main', __name__)
 
 # HOME/LOGIN/LOGOUT/SIGNUP
-@app.route('/')
+@main.route('/')
 def home():
     """Redirect to /drinks"""
     return redirect('/drinks')
 
-@app.route('/signup', methods=['GET','POST'])
+@main.route('/signup', methods=['GET','POST'])
 def signup():
     """Sign up a user"""
     form = SignupForm()
@@ -41,7 +50,7 @@ def signup():
     else:
         return render_template('signup.html', form=form)
     
-@app.route('/login', methods=['GET','POST'])
+@main.route('/login', methods=['GET','POST'])
 def login():
     """Login a user"""
     form = LoginForm()
@@ -64,7 +73,7 @@ def login():
     else:
         return render_template('login.html', form=form)
     
-@app.route('/logout')
+@main.route('/logout')
 def logout():
     """Logout a user"""
     session.pop('USER_ID')
@@ -73,19 +82,19 @@ def logout():
     return redirect('/')
 
 # DRINKS
-@app.route('/random-drink')
+@main.route('/random-drink')
 def random_drink():
     """Redirect to /drinks"""
     random_drink = get_random_drink()
     return redirect(f'/drinks/{random_drink["idDrink"]}')
 
-@app.route('/drinks')
+@main.route('/drinks')
 def show_drinks():
     """Show all drinks"""
     drinks = get_drinks_by_alcoholic()
     return render_template('drinks.html', drinks=drinks)
 
-@app.route('/drinks/search' , methods=['GET','POST'])
+@main.route('/drinks/search' , methods=['GET','POST'])
 def search_drinks():
     """Search for drinks"""
     search_query = request.form.get('search_query')
@@ -96,13 +105,13 @@ def search_drinks():
         flash('No drinks containing that name were found')
         return redirect('/drinks')
 
-@app.route('/drinks/<int:drink_id>')
+@main.route('/drinks/<int:drink_id>')
 def show_drink(drink_id):
     """Show a drink"""
     drink = get_drink_by_id(drink_id)
     return render_template('drink.html', drink=drink)
 
-@app.route('/drinks/<int:drink_id>/favorite', methods=['POST'])
+@main.route('/drinks/<int:drink_id>/favorite', methods=['POST'])
 def favorite_drink(drink_id):
     """Favorite a drink"""
     if not session.get('USER_ID'):
@@ -122,7 +131,7 @@ def favorite_drink(drink_id):
             return jsonify({'favorite_status': False})
         
 # FAVORITES/CATEGORIES
-@app.route('/drinks/favorites')
+@main.route('/drinks/favorites')
 def show_favorites():
     """Show all favorites"""
     if not session.get('USER_ID'):
@@ -141,28 +150,28 @@ def show_favorites():
             return redirect('/drinks')
         return render_template('drinks.html', heading='Favorites', drinks=drinks)
 
-@app.route('/drinks/alcoholic')
+@main.route('/drinks/alcoholic')
 def show_alcoholic():
     drinks = get_drinks_by_alcoholic()
     return render_template('drinks.html', drinks=drinks)
-@app.route('/drinks/non-alcoholic')
+@main.route('/drinks/non-alcoholic')
 def show_non_alcoholic():
     drinks = get_drinks_by_non_alcoholic()
     return render_template('drinks.html', drinks=drinks)
 
-@app.route('/drinks/category')
+@main.route('/drinks/category')
 def show_categories():
     categories = list_categories()
     return render_template('categories.html', categories=categories)
 
-@app.route('/drinks/category/<string:category>')
+@main.route('/drinks/category/<string:category>')
 def show_category(category):
     drinks = get_drinks_by_category(category)
     return render_template('drinks.html', drinks=drinks)
 
 
 # COLLECTIONS
-@app.route('/collections')
+@main.route('/collections')
 def show_collections():
     """Show all collections"""
     if not session.get('USER_ID'):
@@ -177,7 +186,7 @@ def show_collections():
             flash('You have no collections yet. Create your first one below!')
             return redirect('/collections/new')
     
-@app.route('/collections/new', methods=['GET','POST'])
+@main.route('/collections/new', methods=['GET','POST'])
 def create_collection():
     """Create a collection"""
     if not session.get('USER_ID'):
@@ -195,7 +204,7 @@ def create_collection():
     else:
         return render_template('create_collection.html', form=form)
         
-@app.route('/collections/<int:collection_id>')
+@main.route('/collections/<int:collection_id>')
 def show_collection(collection_id):
     drinks = []
     drink_ids = CollectionTable.query.filter_by(collection_id=collection_id).with_entities(CollectionTable.drink_id).all()
@@ -210,7 +219,7 @@ def show_collection(collection_id):
         flash("This collection's empty! Add some drinks with the 'View Collection' button and try again")
         return redirect('/')
 
-@app.route('/collections/<int:collection_id>/edit', methods=['GET','POST'])
+@main.route('/collections/<int:collection_id>/edit', methods=['GET','POST'])
 def edit_collection(collection_id):
     """Edit a collection"""
     if not session.get('USER_ID'):
@@ -230,7 +239,7 @@ def edit_collection(collection_id):
         else:
             return render_template('edit_collection.html', form=form, collection=collection)
         
-@app.route('/collections/<int:collection_id>/delete', methods=['POST'])
+@main.route('/collections/<int:collection_id>/delete', methods=['POST'])
 def delete_collection(collection_id):
     """Delete a collection"""
     if not session.get('USER_ID'):
@@ -247,7 +256,7 @@ def delete_collection(collection_id):
         flash(f'{collection.name} deleted')
         return redirect('/collections')
     
-@app.route('/collections/update-drinks', methods=['POST'])
+@main.route('/collections/update-drinks', methods=['POST'])
 def update_collection_drinks():
     """Update the drinks in collections"""
     if not session.get('USER_ID'):
@@ -311,7 +320,7 @@ def update_collection_drinks():
 
         return 'success'
 
-@app.route('/collections/selected', methods=['POST'])
+@main.route('/collections/selected', methods=['POST'])
 def get_selected_collections():
     """Get the collections selected on the update collections modal"""
     if not session.get('USER_ID'):
@@ -328,7 +337,7 @@ def get_selected_collections():
 
 
 # APP CONTEXT PROCESSORS
-@app.context_processor
+@main.context_processor
 def collections_processor():
     """Make user's collections available to all templates"""
     if not session.get('USER_ID'):
@@ -337,39 +346,39 @@ def collections_processor():
         collections = Collection.query.filter(Collection.user_id == session.get('USER_ID')).all()
     return dict(collections=collections)
 
-@app.context_processor
+@main.context_processor
 def favorites_processor():
     """Make FavoriteDrink available to all templates for querying"""
     return dict(FavoriteDrink=FavoriteDrink)
 
 # ERROR MESSAGES
-@app.route('/login-error')
+@main.route('/login-error')
 def login_error():
     """Show error message for login required"""
     flash ('You must be logged in to view that page')
     return redirect('/login')
 
-@app.errorhandler(500)
+@main.errorhandler(500)
 def internal_server_error(e):
     return render_template('error.html', error=500, error_text=e), 500
 
-@app.errorhandler(400)
+@main.errorhandler(400)
 def bad_request(e):
     return render_template('error.html', error=400, error_text=e), 400
 
-@app.errorhandler(401)
+@main.errorhandler(401)
 def unauthorized(e):
     return render_template('error.html', error=401, error_text=e), 401
 
-@app.errorhandler(403)
+@main.errorhandler(403)
 def forbidden(e):
     return render_template('error.html', error=403, error_text=e), 403
 
-@app.errorhandler(404)
+@main.errorhandler(404)
 def page_not_found(e):
     return render_template('error.html', error=404, error_text=e), 404
 
-@app.errorhandler(405)
+@main.errorhandler(405)
 def method_not_allowed(e):
     return render_template('error.html', error=405, error_text=e), 405
 
