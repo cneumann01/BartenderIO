@@ -38,6 +38,7 @@
 				</div>
 				{% endfor %}
 			</div>
+			{% if collections %}
 			<div class="modal-footer">
 				<button
 					type="button"
@@ -46,6 +47,7 @@
 				>
 					Update Collections
 				</button>
+				{% endif %}
 				<a href="/collections/new" class="btn btn-secondary">
 					New Collection</a
 				>
