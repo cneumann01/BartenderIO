@@ -76,7 +76,7 @@
 					// Loop through checkboxes and pre-check the ones that correspond to the existing collection-drink relationships
 					$("input[name='collections']").each(function () {
 						const collectionId = $(this).val();
-						if (selectedCollections.includes(collectionId)) {
+						if (selectedCollections.includes(parseInt(collectionId))) {
 							$(this).prop("checked", true);
 						}
 					});
