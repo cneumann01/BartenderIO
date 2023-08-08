@@ -62,7 +62,7 @@ pip install -r requirements.txt
 - Create a PostgreSQL database and note down the database URL, including username, password, host, and database name.
 - Export the database URL as an environment variable:
 ```
-export DATABASE_URL=your_database_url
+export DATABASE_URL=postgresql:///your_database_name
 ```
 
 ### Usage
