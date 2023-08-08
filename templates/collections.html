@@ -8,9 +8,10 @@ content %}
 	</div>
 	{% else %}
 	<div class="row">
+		<!-- Collection Cards -->
 		{% for collection in collections %}
 		<div class="col-md-4">
-			<div class="card mb-3">
+			<div class="card collection-card">
 				<div class="card-body">
 					<h4 class="card-title">{{ collection.name }}</h4>
 					<p class="card-text">{{ collection.description }}</p>
@@ -43,6 +44,22 @@ content %}
 			</div>
 		</div>
 		{% endfor %}
+
+		<!-- New Collection Button -->
+		<div class="col-md-4">
+			<div class="card collection-card">
+				<div
+					class="card-body d-flex flex-column"
+				>
+					<a
+						href="/collections/new"
+						class="btn btn-outline-secondary btn-block"
+					>
+						<i class="fas fa-plus fa-3x p-4"></i>
+					</a>
+				</div>
+			</div>
+		</div>
 	</div>
 	{% endif %}
 </div>
