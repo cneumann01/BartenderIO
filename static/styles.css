@@ -76,3 +76,8 @@ nav {
     min-height: calc(100% - (1.75rem * 2)); /* Adjust the padding as needed */
 	z-index: 1050;
 }
+
+.collection-card {
+	margin-bottom: 20px;
+	height: calc(100% - 20px);
+}

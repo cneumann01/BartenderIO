@@ -1,5 +1,5 @@
 import requests
-BASE_URL = 'https://www.thecocktaildb.com/api/json/v1/1'
+from api_client import BASE_URL
 
 def list_categories():
     """List categories"""

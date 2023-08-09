@@ -23,7 +23,14 @@ def create_app():
 
     return app
 
+# Initiates blueprint
 main = Blueprint('main', __name__)
+
+# Checks if user has premium API access
+if BASE_URL == 'https://www.thecocktaildb.com/api/json/v1/1':
+    premium_access = False
+else:
+    premium_access = True
 
 # HOME/LOGIN/LOGOUT/SIGNUP
 @main.route('/')
@@ -91,7 +98,10 @@ def random_drink():
 @main.route('/drinks')
 def show_drinks():
     """Show all drinks"""
-    drinks = get_drinks_by_alcoholic()
+    if premium_access:
+        drinks = get_drinks_by_random()
+    else:
+        drinks = get_drinks_by_alcoholic()
     return render_template('drinks.html', drinks=drinks)
 
 @main.route('/drinks/search' , methods=['GET','POST'])
