@@ -14,7 +14,6 @@ Additionally, BartenderIO is available as a standalone Flask application. Please
 - [Getting Started](#getting-started)
 - [Installation](#installation)
 - [Usage](#usage)
-- [API Endpoints](#api-endpoints)
 - [Contributing](#contributing)
 - [License](#license)
 
