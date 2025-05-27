@@ -1,5 +1,5 @@
 # BartenderIO
-BartenderIO is my first independent coding project, showcasing the culmination of my knowledge and skills at the halfway point of the Springboard coding bootcamp. Developed entirely without assistance from the school, the project solely features my own creativity and knowledge.
+BartenderIO is my first independent capstone project, showcasing the culmination of my knowledge and skills at the halfway point of the Springboard coding bootcamp. Developed entirely without assistance from the school, the project solely features my own creativity and knowledge.
 
 As a Flask/PostgreSQL driven web application, BartenderIO offers users a straightforward and user-friendly interface that interacts with the CocktailDB API. Users can freely explore an extensive library of drinks, create a personalized account to save their favorites, craft custom drink lists, and even discover inspiration with the random drink feature. Each drink features a beautiful photo sourced from the CocktailDB API, and is accompanied by easy-to-follow instructions and ingredient lists.
 
